@@ -4,7 +4,7 @@ use fake::Fake;
 use gpui::{
     App, AppContext, Context, ElementId, Entity, FocusHandle, Focusable, InteractiveElement,
     IntoElement, ParentElement, Render, RenderOnce, ScrollStrategy, SharedString, Styled,
-    Subscription, Task, Timer, Window, actions, div, px,
+    Subscription, Task, Window, actions, div, px,
 };
 
 use gpui_component::{
@@ -196,6 +196,11 @@ impl ListDelegate for CompanyListDelegate {
     }
 
     fn items_count(&self, section: usize, _: &App) -> usize {
+        if matches!(section, 0 | 2 | 3) {
+            // Return some empty sections for testing.
+            return 0;
+        }
+
         self.matched_companies[section].len()
     }
 
@@ -251,7 +256,8 @@ impl ListDelegate for CompanyListDelegate {
                 .text_sm()
                 .text_color(cx.theme().muted_foreground)
                 .child(Icon::new(IconName::Folder))
-                .child(industry.clone()),
+                .child(industry.clone())
+                .child(format!("(section: {})", section)),
         )
     }
 
@@ -316,7 +322,10 @@ impl ListDelegate for CompanyListDelegate {
 
         cx.spawn_in(window, async move |view, window| {
             // Simulate network request, delay 1s to load data.
-            Timer::after(Duration::from_secs(1)).await;
+            window
+                .background_executor()
+                .timer(Duration::from_secs(1))
+                .await;
 
             _ = view.update_in(window, move |view, window, cx| {
                 let query = view.delegate().query.clone();
